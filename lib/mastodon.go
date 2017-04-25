@@ -1,0 +1,120 @@
+package mpmastodon
+
+import (
+	"flag"
+	"fmt"
+	"io"
+	"strings"
+
+	"net/http"
+	"strconv"
+
+	mp "github.com/mackerelio/go-mackerel-plugin-helper"
+	"gopkg.in/xmlpath.v2"
+)
+
+var graphdef = map[string]mp.Graphs{
+	"user": {
+		Label: "Mastodon users",
+		Unit:  "integer",
+		Metrics: []mp.Metrics{
+			{Name: "user_count", Label: "Confirmed users count", Diff: false},
+		},
+	},
+	"toot": {
+		Label: "Mastodon toots",
+		Unit:  "integer",
+		Metrics: []mp.Metrics{
+			{Name: "toot_count", Label: "Posted toots count", Diff: false},
+		},
+	},
+	"instance": {
+		Label: "Mastodon instances",
+		Unit:  "integer",
+		Metrics: []mp.Metrics{
+			{Name: "instance_count", Label: "Connected other instances count", Diff: false},
+		},
+	},
+}
+
+// MastodonPlugin mackerel plugin for mastodon
+type MastodonPlugin struct {
+	Host     string
+	Tempfile string
+	Prefix   string
+}
+
+// GraphDefinition interface for mackerel plugin
+func (m MastodonPlugin) GraphDefinition() map[string]mp.Graphs {
+	return graphdef
+}
+
+// MetricKeyPrefix interface for mackerel plugin
+func (m MastodonPlugin) MetricKeyPrefix() string {
+	if m.Prefix == "" {
+		m.Prefix = "mastodon"
+	}
+	return m.Prefix
+}
+
+// FetchMetrics interface for mackerel plugin
+func (m MastodonPlugin) FetchMetrics() (map[string]interface{}, error) {
+	uri := fmt.Sprintf("https://%s/about/more", m.Host)
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return m.parseStats(resp.Body)
+}
+
+func (m MastodonPlugin) parseStats(body io.Reader) (map[string]interface{}, error) {
+	stat := make(map[string]interface{})
+
+	path := xmlpath.MustCompile("//*[@class='information-board']/*[@class='section']/strong")
+	root, err := xmlpath.ParseHTML(body)
+	if err != nil {
+		return nil, err
+	}
+	iter := path.Iter(root)
+
+	iter.Next()
+	count := strings.Replace(iter.Node().String(), ",", "", -1)
+	stat["user_count"], err = strconv.ParseFloat(count, 64)
+	if err != nil {
+		return nil, err
+	}
+	iter.Next()
+	count = strings.Replace(iter.Node().String(), ",", "", -1)
+	stat["toot_count"], err = strconv.ParseFloat(count, 64)
+	if err != nil {
+		return nil, err
+	}
+	iter.Next()
+	count = strings.Replace(iter.Node().String(), ",", "", -1)
+	stat["instance_count"], err = strconv.ParseFloat(count, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	return stat, nil
+}
+
+// Do the plugin
+func Do() {
+	optHost := flag.String("host", "", "Host")
+	optTempfile := flag.String("tempfile", "", "Temp file name")
+	flag.Parse()
+
+	var mastodon MastodonPlugin
+	mastodon.Host = *optHost
+
+	helper := mp.NewMackerelPlugin(mastodon)
+	helper.Tempfile = *optTempfile
+	helper.Run()
+}
