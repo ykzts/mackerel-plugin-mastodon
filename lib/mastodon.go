@@ -83,20 +83,16 @@ func (m MastodonPlugin) parseStats(body io.Reader) (map[string]interface{}, erro
 	}
 	iter := path.Iter(root)
 
-	iter.Next()
-	stat["user_count"], err = parseCount(iter.Node().String())
-	if err != nil {
-		return nil, err
-	}
-	iter.Next()
-	stat["toot_count"], err = parseCount(iter.Node().String())
-	if err != nil {
-		return nil, err
-	}
-	iter.Next()
-	stat["instance_count"], err = parseCount(iter.Node().String())
-	if err != nil {
-		return nil, err
+	keys := []string{"user_count", "toot_count", "instance_count"}
+
+	for _, key := range keys {
+		if !iter.Next() {
+			break
+		}
+		stat[key], err = parseCount(iter.Node().String())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return stat, nil
