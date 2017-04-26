@@ -84,25 +84,27 @@ func (m MastodonPlugin) parseStats(body io.Reader) (map[string]interface{}, erro
 	iter := path.Iter(root)
 
 	iter.Next()
-	count := strings.Replace(iter.Node().String(), ",", "", -1)
-	stat["user_count"], err = strconv.ParseFloat(count, 64)
+	stat["user_count"], err = parseCount(iter.Node().String())
 	if err != nil {
 		return nil, err
 	}
 	iter.Next()
-	count = strings.Replace(iter.Node().String(), ",", "", -1)
-	stat["toot_count"], err = strconv.ParseFloat(count, 64)
+	stat["toot_count"], err = parseCount(iter.Node().String())
 	if err != nil {
 		return nil, err
 	}
 	iter.Next()
-	count = strings.Replace(iter.Node().String(), ",", "", -1)
-	stat["instance_count"], err = strconv.ParseFloat(count, 64)
+	stat["instance_count"], err = parseCount(iter.Node().String())
 	if err != nil {
 		return nil, err
 	}
 
 	return stat, nil
+}
+
+func parseCount(s string) (float64, error) {
+	count := strings.Replace(s, ",", "", -1)
+	return strconv.ParseFloat(count, 64)
 }
 
 // Do the plugin
