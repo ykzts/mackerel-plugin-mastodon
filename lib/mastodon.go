@@ -60,11 +60,7 @@ func (m MastodonPlugin) MetricKeyPrefix() string {
 // FetchMetrics interface for mackerel plugin
 func (m MastodonPlugin) FetchMetrics() (map[string]interface{}, error) {
 	uri := fmt.Sprintf("https://%s/about/more", m.Host)
-	req, err := http.NewRequest("GET", uri, nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.Get(uri)
 	if err != nil {
 		return nil, err
 	}
