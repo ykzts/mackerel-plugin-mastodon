@@ -72,7 +72,7 @@ func (m MastodonPlugin) FetchMetrics() (map[string]interface{}, error) {
 func (m MastodonPlugin) parseStats(body io.Reader) (map[string]interface{}, error) {
 	stat := make(map[string]interface{})
 
-	path := xmlpath.MustCompile("//*[@class='information-board']/*[@class='section']/strong")
+	path := xmlpath.MustCompile("//*[@class='information-board']//*[@class='section']/strong")
 	root, err := xmlpath.ParseHTML(body)
 	if err != nil {
 		return nil, err
