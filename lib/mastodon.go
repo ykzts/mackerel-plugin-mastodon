@@ -13,7 +13,7 @@ import (
 	"gopkg.in/xmlpath.v2"
 )
 
-var graphdef = map[string]mp.Graphs{
+const graphdef = map[string]mp.Graphs{
 	"user": {
 		Label: "Mastodon users",
 		Unit:  "integer",
